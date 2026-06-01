@@ -459,8 +459,13 @@
     <div class="page-title">📅 캘린더</div>
     <button class="btn btn-primary btn-sm" onclick="openAddRecord()">+ 기록</button>
   </div>
+  <!-- 뷰 토글 -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="chip active" id="cal-view-all" onclick="setCalViewMode('all',this)" style="flex:1;text-align:center;">📅 전체 일정</button>
+    <button class="chip" id="cal-view-mine" onclick="setCalViewMode('mine',this)" style="flex:1;text-align:center;">✅ 내 관람</button>
+  </div>
   <!-- 배우 필터 -->
-  <div class="cal-filter">
+  <div class="cal-filter" id="cal-actor-filter">
     <div class="cal-filter-row">
       <span class="cal-filter-label" style="font-size:10px;">타마라</span>
       <div id="cal-chips-role1" style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -1783,6 +1788,17 @@ function renderHome() {
 // ============================================================
 let calYear, calMonth;
 const calFilters = { role1:null,role2:null,role3:null,role4:null,role5:null,role6:null,role7:null,role8:null };
+let calViewMode = 'all'; // 'all' | 'mine'
+
+function setCalViewMode(mode, btn) {
+  calViewMode = mode;
+  document.getElementById('cal-view-all')?.classList.toggle('active', mode==='all');
+  document.getElementById('cal-view-mine')?.classList.toggle('active', mode==='mine');
+  const filterEl = document.getElementById('cal-actor-filter');
+  if (filterEl) filterEl.style.display = mode==='mine' ? 'none' : '';
+  calSelectedDs = null;
+  renderCalendar();
+}
 let calSelectedDs = null;
 
 function initCal() {
@@ -1934,7 +1950,18 @@ function renderCalendar() {
       if (ds === calSelectedDs) cls += ' selected';
 
       let sessionHtml = '';
-      if (filteredDaySch.length) {
+      if (calViewMode === 'mine') {
+        // 내 관람 모드: records만 표시
+        const dayRecs = records.filter(r => r.date === ds)
+          .sort((a,b) => a.time.localeCompare(b.time));
+        sessionHtml = dayRecs.map(r => {
+          const isPast   = r.date <= todayStr;
+          const isBooked = r.isBooked !== false;
+          const chipCls  = isPast ? 'cal-session-chip done' : isBooked ? 'cal-session-chip booked' : 'cal-session-chip';
+          const icon     = isPast ? '✅' : '';
+          return `<div class="${chipCls}"><span class="cs-icon">${icon}</span><span class="cs-time">${r.time}</span></div>`;
+        }).join('');
+      } else if (filteredDaySch.length) {
         sessionHtml = filteredDaySch
           .sort((a,b) => a.time.localeCompare(b.time))
           .map(s => {
@@ -2001,6 +2028,32 @@ function renderCalDayPanel(ds, daySch, doneSet, bookedSet, records) {
   const dayRecords = records.filter(r => r.date === ds);
 
   let html = `<div class="cal-day-panel"><div class="cal-day-panel-title">${dateLabel}</div>`;
+
+  // 내 관람 모드: records만 표시
+  if (calViewMode === 'mine') {
+    if (dayRecords.length) {
+      dayRecords.sort((a,b)=>a.time.localeCompare(b.time)).forEach(r => {
+        const rcast4 = ['role1','role2','role3','role4'].map(k=>r[k]?`<span class="${k}">${r[k]}</span>`:'').filter(Boolean).join(' · ');
+        const isPast = r.date <= localDate();
+        const badge = r.isBooked===false ? '<span class="cal-session-badge" style="color:var(--text3)">미정</span>'
+                    : isPast ? '<span class="cal-session-badge done">✅ 관람완료</span>'
+                    : '<span class="cal-session-badge booked">✓ 예매확정</span>';
+        html += `<div class="cal-session-row">
+          <div class="cal-session-time">${r.time}</div>
+          <div class="cal-session-casting">${rcast4}</div>
+          ${badge}
+          <button class="cal-session-add" onclick="openDetail('${r.id}')">상세</button>
+        </div>`;
+      });
+    } else {
+      html += '<div style="padding:12px 14px;color:var(--text3);font-size:13px;">관람 기록 없음</div>';
+    }
+    html += `<div style="padding:10px 14px 14px;">
+      <button class="btn btn-primary btn-sm" style="width:100%;" onclick="openAddRecord('${ds}')">+ 이 날 기록 추가</button>
+    </div></div>`;
+    document.getElementById('cal-day-records').innerHTML = html;
+    return;
+  }
 
   const sorted = [...daySch].sort((a,b) => a.time.localeCompare(b.time));
   if (sorted.length) {
