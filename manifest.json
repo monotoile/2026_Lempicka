@@ -1,0 +1,23 @@
+{
+  "name": "렘피카 관극 다이어리",
+  "short_name": "렘피카",
+  "description": "뮤지컬 LEMPICKA 2026 관람 기록 앱",
+  "start_url": "/2026_Lempicka/",
+  "scope": "/2026_Lempicka/",
+  "display": "standalone",
+  "background_color": "#f8f8f6",
+  "theme_color": "#2A9070",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
