@@ -821,6 +821,16 @@
           차액 지불 (쿠폰 미차감)
         </label>
       </div>
+      <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--text2);">
+          <input type="checkbox" id="rec-coupon1000" style="width:16px;height:16px;accent-color:var(--accent);" onchange="calcAutoPrice()">
+          만원 쿠폰 (-₩10,000)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--text2);">
+          <input type="checkbox" id="rec-couponNaver" style="width:16px;height:16px;accent-color:var(--accent);" onchange="calcAutoPrice()">
+          네이버 쿠폰 (-₩2,500)
+        </label>
+      </div>
     </div>
 
     <div class="form-row">
@@ -836,10 +846,17 @@
         </select>
       </div>
       <div class="form-group" style="flex:2;">
-        <label class="form-label">티켓 가격 (원)</label>
-        <input type="number" class="form-control" id="rec-price" placeholder="예: 120000">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <span class="form-label" style="margin:0;">티켓 가격 (원)</span>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;color:var(--text3);">
+            <input type="checkbox" id="rec-price-manual" onchange="onPriceManualChange()" style="width:14px;height:14px;accent-color:var(--accent);">
+            직접 입력
+          </label>
+        </div>
+        <input type="number" class="form-control" id="rec-price" placeholder="등급 선택 시 자동 계산" readonly style="background:var(--bg3);">
       </div>
     </div>
+    <div id="rec-price-breakdown" style="display:none;font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px;padding:6px 10px;background:var(--bg3);border-radius:8px;line-height:1.7;"></div>
 
     <div class="form-group">
       <label class="form-label">한줄 코멘트</label>
@@ -1254,12 +1271,61 @@ const SEAT_GRADE_MAP = {
   'S석':   100000,
   'A석':   80000
 };
-function onSeatGradeChange() {
+const BOOKING_FEE = 2000;
+const DISCOUNT_RATE_MAP = {
+  '프리뷰 할인': 0.25,
+  '재관람 할인': 0.20,
+  '30% 할인권': 0.30,
+  '50% 할인권': 0.50,
+  '70% 할인권': 0.70
+};
+
+function calcAutoPrice() {
+  if (document.getElementById('rec-price-manual')?.checked) return;
   const grade = document.getElementById('rec-seat-grade').value;
   const priceEl = document.getElementById('rec-price');
-  if (grade && SEAT_GRADE_MAP[grade] !== undefined) {
-    priceEl.value = SEAT_GRADE_MAP[grade];
+  const bdEl = document.getElementById('rec-price-breakdown');
+  if (!grade || SEAT_GRADE_MAP[grade] === undefined) {
+    priceEl.value = '';
+    if (bdEl) bdEl.style.display = 'none';
+    return;
   }
+  const base = SEAT_GRADE_MAP[grade];
+  const discountType = document.getElementById('rec-discount-type').value;
+  const rate = DISCOUNT_RATE_MAP[discountType] || 0;
+  const discounted = Math.round(base * (1 - rate));
+  const c1000  = document.getElementById('rec-coupon1000')?.checked  ? 10000 : 0;
+  const cNaver = document.getElementById('rec-couponNaver')?.checked ? 2500  : 0;
+  const total  = discounted + BOOKING_FEE - c1000 - cNaver;
+  priceEl.value = total;
+  if (bdEl) {
+    const parts = [`정가 ₩${base.toLocaleString()}`];
+    if (rate > 0) parts.push(`${discountType} -${Math.round(rate*100)}% → ₩${discounted.toLocaleString()}`);
+    parts.push(`예매비 +₩${BOOKING_FEE.toLocaleString()}`);
+    if (c1000)  parts.push('만원쿠폰 -₩10,000');
+    if (cNaver) parts.push('네이버쿠폰 -₩2,500');
+    parts.push(`= ₩${total.toLocaleString()}`);
+    bdEl.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+    bdEl.style.display = '';
+  }
+}
+
+function onSeatGradeChange() { calcAutoPrice(); }
+
+function onPriceManualChange() {
+  const manual = document.getElementById('rec-price-manual').checked;
+  const priceEl = document.getElementById('rec-price');
+  const bdEl = document.getElementById('rec-price-breakdown');
+  if (manual) {
+    priceEl.removeAttribute('readonly');
+    priceEl.style.background = '';
+    priceEl.focus();
+  } else {
+    priceEl.setAttribute('readonly', '');
+    priceEl.style.background = 'var(--bg3)';
+    calcAutoPrice();
+  }
+  if (bdEl) bdEl.style.display = manual ? 'none' : (document.getElementById('rec-seat-grade').value ? '' : 'none');
 }
 function onUnconfirmedChange() {
   // purely visual feedback if needed – isBooked is read from checkbox at save time
@@ -1322,7 +1388,13 @@ function openAddRecord(date) {
   const rowEl=document.getElementById('rec-row'); if(rowEl) rowEl.value='';
   document.getElementById('rec-num').value = '';
   document.getElementById('rec-seat-grade').value = '';
+  document.getElementById('rec-coupon1000').checked = false;
+  document.getElementById('rec-couponNaver').checked = false;
+  document.getElementById('rec-price-manual').checked = false;
   document.getElementById('rec-price').value = '';
+  document.getElementById('rec-price').setAttribute('readonly', '');
+  document.getElementById('rec-price').style.background = 'var(--bg3)';
+  document.getElementById('rec-price-breakdown').style.display = 'none';
   document.getElementById('rec-discount-type').value = '';
   document.getElementById('rec-discount-warn').style.display = 'none';
   document.getElementById('rec-paid-diff').checked = false;
@@ -1352,8 +1424,22 @@ function editRecord(id) {
   const rowEl=document.getElementById('rec-row'); if(rowEl) rowEl.value=r.seatRow||'';
   document.getElementById('rec-num').value = r.seatNumber||'';
   document.getElementById('rec-seat-grade').value = r.seatGrade||'';
-  document.getElementById('rec-price').value = r.price||'';
+  document.getElementById('rec-coupon1000').checked = r.coupon1000||false;
+  document.getElementById('rec-couponNaver').checked = r.couponNaver||false;
   document.getElementById('rec-discount-type').value = r.discountType||'';
+  // 자동 계산 후 저장값과 비교 → 다르면 직접 입력 모드로 전환
+  document.getElementById('rec-price-manual').checked = false;
+  document.getElementById('rec-price').setAttribute('readonly', '');
+  document.getElementById('rec-price').style.background = 'var(--bg3)';
+  calcAutoPrice();
+  const computed = parseInt(document.getElementById('rec-price').value)||0;
+  if (r.price && r.price !== computed) {
+    document.getElementById('rec-price-manual').checked = true;
+    document.getElementById('rec-price').removeAttribute('readonly');
+    document.getElementById('rec-price').style.background = '';
+    document.getElementById('rec-price-breakdown').style.display = 'none';
+  }
+  document.getElementById('rec-price').value = r.price||'';
   document.getElementById('rec-discount-warn').style.display = 'none';
   document.getElementById('rec-paid-diff').checked = r.paidDiff || false;
   document.getElementById('rec-paid-diff-group').style.display = (DISCOUNT_COUPON_MAP[r.discountType||'']) ? '' : 'none';
@@ -1421,6 +1507,8 @@ function saveRecord() {
     seatNumber:   numVal!=='' ? parseInt(numVal) : null,
     price:        priceVal!=='' ? parseInt(priceVal) : null,
     seatGrade:    document.getElementById('rec-seat-grade').value || null,
+    coupon1000:   document.getElementById('rec-coupon1000')?.checked || false,
+    couponNaver:  document.getElementById('rec-couponNaver')?.checked || false,
     discountType: discountType,
     paidDiff:     paidDiff || false,
     stampBoardId: stampBoardId || null,
@@ -2923,6 +3011,7 @@ function onDiscountTypeChange() {
     paidDiffGroup.style.display = 'none';
     paidDiffCb.checked = false;
   }
+  calcAutoPrice();
 }
 
 function onPaidDiffChange() {
