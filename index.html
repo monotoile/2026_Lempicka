@@ -823,9 +823,22 @@
       </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">티켓 가격 (원)</label>
-      <input type="number" class="form-control" id="rec-price" placeholder="예: 45000">
+    <div class="form-row">
+      <div class="form-group" style="flex:1.2;">
+        <label class="form-label">등급</label>
+        <select class="form-control" id="rec-seat-grade" onchange="onSeatGradeChange()">
+          <option value="">-</option>
+          <option value="VIP석">VIP석</option>
+          <option value="OP석">OP석</option>
+          <option value="R석">R석</option>
+          <option value="S석">S석</option>
+          <option value="A석">A석</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:2;">
+        <label class="form-label">티켓 가격 (원)</label>
+        <input type="number" class="form-control" id="rec-price" placeholder="예: 120000">
+      </div>
     </div>
 
     <div class="form-group">
@@ -1234,6 +1247,20 @@ function onZoneChange() {
   else if (zone==='B') { rowEl.min=1;rowEl.max=23;rowEl.placeholder='1-23';numEl.min=1;numEl.max=17;numEl.placeholder='1-17'; }
   else { rowEl.placeholder='열';numEl.placeholder='번'; }
 }
+const SEAT_GRADE_MAP = {
+  'VIP석': 150000,
+  'OP석':  150000,
+  'R석':   120000,
+  'S석':   100000,
+  'A석':   80000
+};
+function onSeatGradeChange() {
+  const grade = document.getElementById('rec-seat-grade').value;
+  const priceEl = document.getElementById('rec-price');
+  if (grade && SEAT_GRADE_MAP[grade] !== undefined) {
+    priceEl.value = SEAT_GRADE_MAP[grade];
+  }
+}
 function onUnconfirmedChange() {
   // purely visual feedback if needed – isBooked is read from checkbox at save time
 }
@@ -1294,6 +1321,7 @@ function openAddRecord(date) {
   document.getElementById('rec-zone').value = '';
   const rowEl=document.getElementById('rec-row'); if(rowEl) rowEl.value='';
   document.getElementById('rec-num').value = '';
+  document.getElementById('rec-seat-grade').value = '';
   document.getElementById('rec-price').value = '';
   document.getElementById('rec-discount-type').value = '';
   document.getElementById('rec-discount-warn').style.display = 'none';
@@ -1323,6 +1351,7 @@ function editRecord(id) {
   document.getElementById('rec-zone').value = r.seatZone||'';
   const rowEl=document.getElementById('rec-row'); if(rowEl) rowEl.value=r.seatRow||'';
   document.getElementById('rec-num').value = r.seatNumber||'';
+  document.getElementById('rec-seat-grade').value = r.seatGrade||'';
   document.getElementById('rec-price').value = r.price||'';
   document.getElementById('rec-discount-type').value = r.discountType||'';
   document.getElementById('rec-discount-warn').style.display = 'none';
@@ -1391,6 +1420,7 @@ function saveRecord() {
     seatRow:      rowVal!=='' ? parseInt(rowVal) : null,
     seatNumber:   numVal!=='' ? parseInt(numVal) : null,
     price:        priceVal!=='' ? parseInt(priceVal) : null,
+    seatGrade:    document.getElementById('rec-seat-grade').value || null,
     discountType: discountType,
     paidDiff:     paidDiff || false,
     stampBoardId: stampBoardId || null,
