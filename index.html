@@ -789,9 +789,16 @@
         <select class="form-control" id="rec-zone" onchange="onZoneChange()">
           <option value="">-</option>
           <option value="OP">OP</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
+          <optgroup label="객석 1층">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </optgroup>
+          <optgroup label="객석 2층">
+            <option value="A2">A</option>
+            <option value="B2">B</option>
+            <option value="C2">C</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-group" style="flex:1;">
@@ -1261,6 +1268,8 @@ function onZoneChange() {
   if (zone==='OP') { rowEl.min=1;rowEl.max=2;rowEl.placeholder='1-2';numEl.min=5;numEl.max=25;numEl.placeholder='5-25'; }
   else if (zone==='A'||zone==='C') { rowEl.min=1;rowEl.max=21;rowEl.placeholder='1-21';numEl.min=1;numEl.max=8;numEl.placeholder='1-8'; }
   else if (zone==='B') { rowEl.min=1;rowEl.max=23;rowEl.placeholder='1-23';numEl.min=1;numEl.max=17;numEl.placeholder='1-17'; }
+  else if (zone==='A2'||zone==='C2') { rowEl.min=1;rowEl.max=8;rowEl.placeholder='1-8';numEl.min=1;numEl.max=8;numEl.placeholder='1-8'; }
+  else if (zone==='B2') { rowEl.min=1;rowEl.max=8;rowEl.placeholder='1-8';numEl.min=1;numEl.max=17;numEl.placeholder='1-17'; }
   else { rowEl.placeholder='열';numEl.placeholder='번'; }
 }
 const SEAT_GRADE_MAP = {
@@ -1605,7 +1614,7 @@ function openDetail(id) {
   if (r.comment) html += `<div class="detail-field"><div class="detail-field-label">한줄 코멘트</div><div class="detail-field-value">${r.comment}</div></div>`;
   if (r.seatZone) {
     const rowStr = r.seatRow ? `${r.seatRow}열 ` : '';
-    html += `<div class="detail-field"><div class="detail-field-label">좌석</div><div class="detail-field-value">${r.seatZone}구역 ${rowStr}${r.seatNumber}번</div></div>`;
+    html += `<div class="detail-field"><div class="detail-field-label">좌석</div><div class="detail-field-value">${seatZoneDisplay(r.seatZone)} ${rowStr}${r.seatNumber}번</div></div>`;
     html += buildMiniSeat(r.seatZone, r.seatRow, r.seatNumber);
   }
   if (r.price != null && r.price !== '') html += `<div class="detail-field"><div class="detail-field-label">티켓 가격</div><div class="detail-field-value">₩${r.price.toLocaleString()}${r.discountType ? ` <span style="font-size:11px;color:var(--accent);background:var(--accent-light);padding:2px 6px;border-radius:4px;margin-left:4px;">${DISCOUNT_LABEL[r.discountType] || r.discountType}</span>` : ''}</div></div>`;
@@ -1635,6 +1644,13 @@ function openDetail(id) {
   openPanel('overlay-detail');
 }
 
+function seatZoneDisplay(zone) {
+  if (zone==='A2') return '2층 A구역';
+  if (zone==='B2') return '2층 B구역';
+  if (zone==='C2') return '2층 C구역';
+  return zone + '구역';
+}
+
 // 렘피카 좌석 구성
 function getZoneRowDef(zone, row) {
   if (zone==='OP') return { start:5, end:25 };
@@ -1651,14 +1667,25 @@ function getZoneRowDef(zone, row) {
     const e = (row===7||row===8||row===16||row===17) ? 7 : 8;
     return { start:1, end:e };
   }
+  if (zone==='A2'||zone==='C2') {
+    if (row<=6) return { start:1, end:8 };
+    if (row===7) return { start:1, end:5 };
+    return { start:1, end:4 };
+  }
+  if (zone==='B2') {
+    if (row===1||row===2||row===5||row===8) return { start:1, end:16 };
+    if (row===3||row===4||row===6) return { start:1, end:17 };
+    if (row===7) return { start:1, end:14 };
+    return { start:1, end:16 };
+  }
   return { start:1, end:8 };
 }
 
 function buildMiniSeat(zone, row, num) {
   const C=7, G=1;
-  const maxRows = zone==='OP'?2:zone==='B'?23:21;
+  const maxRows = zone==='OP'?2:zone==='B'?23:(zone==='A2'||zone==='B2'||zone==='C2')?8:21;
   const minSeat = zone==='OP'?5:1;
-  const maxSeat = zone==='OP'?25:zone==='B'?17:8;
+  const maxSeat = zone==='OP'?25:(zone==='B'||zone==='B2')?17:8;
   let html = '<div style="overflow-x:auto;margin:8px 0;"><div style="display:flex;flex-direction:column;gap:1px;width:max-content;margin:0 auto;">';
   for (let r=1;r<=maxRows;r++) {
     const def = getZoneRowDef(zone, r);
@@ -1763,7 +1790,7 @@ function renderHome() {
     const diff  = Math.round((d-todayD)/86400000);
     const dday  = diff===0 ? 'D-DAY' : `D-${diff}`;
     const rowStr = nextShow.seatRow ? `${nextShow.seatRow}열 ` : '';
-    const seat  = nextShow.seatZone ? `${nextShow.seatZone}구역 ${rowStr}${nextShow.seatNumber}번` : '';
+    const seat  = nextShow.seatZone ? `${seatZoneDisplay(nextShow.seatZone)} ${rowStr}${nextShow.seatNumber}번` : '';
     const mainPills = ['role1','role2','role3','role4'].map((k,i)=>
       nextShow[k] ? `<span class="next-show-pill ${k}">${nextShow[k]}</span>` : ''
     ).join('');
@@ -1792,7 +1819,7 @@ function renderHome() {
       const diff2 = Math.round((d2-todayD2)/86400000);
       const dday2 = diff2===0 ? 'D-DAY' : `D-${diff2}`;
       const rowStr2 = r.seatRow ? `${r.seatRow}열 ` : '';
-      const seat2 = r.seatZone ? `${r.seatZone}구역 ${rowStr2}${r.seatNumber}번` : '';
+      const seat2 = r.seatZone ? `${seatZoneDisplay(r.seatZone)} ${rowStr2}${r.seatNumber}번` : '';
       const cast2 = [r.role1,r.role2,r.role3,r.role4].filter(Boolean).join(' · ');
       return `<div class="upcoming-item" onclick="openDetail('${r.id}')">
         <div class="upcoming-dday" style="${r.isBooked===false ? 'color:var(--text3);' : ''}">${dday2}</div>
@@ -1882,7 +1909,7 @@ function renderHome() {
         <div class="record-mini" onclick="openDetail('${r.id}')">
           <div class="record-date-badge">${r.date.slice(5)} ${r.time}</div>
           <div class="record-casting">${[r.role1,r.role2].filter(Boolean).join(' · ')}</div>
-          <div class="record-rating">${r.seatZone ? r.seatZone+'구역 '+(r.seatRow?r.seatRow+'열 ':'')+r.seatNumber+'번' : ''}</div>
+          <div class="record-rating">${r.seatZone ? seatZoneDisplay(r.seatZone)+' '+(r.seatRow?r.seatRow+'열 ':'')+r.seatNumber+'번' : ''}</div>
         </div>`).join('');
   const moreEl = document.getElementById('home-recent-more');
   if (showCount < pastAll.length) {
@@ -2376,6 +2403,42 @@ function renderHeatmap() {
       if (!cDef || n < cDef.start || n > cDef.end) { html += `<div style="width:${C}px;height:${C}px;visibility:hidden;flex-shrink:0;margin-right:${G}px;"></div>`; continue; }
       const k = `C-${row}-${n}`, cnt = seatMap[k]||0, c = cls(cnt);
       html += `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;margin-right:${G}px;" title="C${row}열 ${n}번 ${cnt}회"></div>`;
+    }
+    html += '</div>';
+  }
+
+  // ─── 객석2층 (A2/B2/C2) ───
+  html += `<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px;text-align:center;margin-top:10px;">객석2층</div>`;
+  html += `<div style="display:flex;align-items:center;margin-bottom:2px;">
+    <div style="width:${RL}px;"></div>
+    <div style="width:${aW}px;text-align:center;font-size:8px;color:var(--text3);font-weight:600;">A</div>
+    <div style="width:${LBL+4}px;"></div>
+    <div style="width:${bW}px;text-align:center;font-size:8px;color:var(--text3);font-weight:600;">B</div>
+    <div style="width:${LBL+4}px;"></div>
+    <div style="width:${cW}px;text-align:center;font-size:8px;color:var(--text3);font-weight:600;">C</div>
+  </div>`;
+  for (let row = 1; row <= 8; row++) {
+    const a2Def = getZoneRowDef('A2', row);
+    const b2Def = getZoneRowDef('B2', row);
+    const c2Def = getZoneRowDef('C2', row);
+    html += `<div style="display:flex;gap:0;align-items:center;margin-bottom:${G}px;">`;
+    html += `<div style="width:${RL}px;font-size:7px;color:var(--text3);text-align:right;padding-right:2px;flex-shrink:0;">${row}열</div>`;
+    for (let n = 1; n <= 8; n++) {
+      if (n < a2Def.start || n > a2Def.end) { html += `<div style="width:${C}px;height:${C}px;visibility:hidden;flex-shrink:0;margin-right:${G}px;"></div>`; continue; }
+      const k = `A2-${row}-${n}`, cnt = seatMap[k]||0, c = cls(cnt);
+      html += `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;margin-right:${G}px;" title="2층A${row}열 ${n}번 ${cnt}회"></div>`;
+    }
+    html += `<div style="width:${LBL}px;text-align:center;font-size:6px;color:var(--text3);flex-shrink:0;margin:0 2px;line-height:${C}px;">${row}</div>`;
+    for (let n = 1; n <= 17; n++) {
+      if (n < b2Def.start || n > b2Def.end) { html += `<div style="width:${C}px;height:${C}px;visibility:hidden;flex-shrink:0;margin-right:${G}px;"></div>`; continue; }
+      const k = `B2-${row}-${n}`, cnt = seatMap[k]||0, c = cls(cnt);
+      html += `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;margin-right:${G}px;" title="2층B${row}열 ${n}번 ${cnt}회"></div>`;
+    }
+    html += `<div style="width:${LBL}px;text-align:center;font-size:6px;color:var(--text3);flex-shrink:0;margin:0 2px;line-height:${C}px;">${row}</div>`;
+    for (let n = 1; n <= 8; n++) {
+      if (n < c2Def.start || n > c2Def.end) { html += `<div style="width:${C}px;height:${C}px;visibility:hidden;flex-shrink:0;margin-right:${G}px;"></div>`; continue; }
+      const k = `C2-${row}-${n}`, cnt = seatMap[k]||0, c = cls(cnt);
+      html += `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;margin-right:${G}px;" title="2층C${row}열 ${n}번 ${cnt}회"></div>`;
     }
     html += '</div>';
   }
