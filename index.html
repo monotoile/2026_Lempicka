@@ -2347,12 +2347,11 @@ function renderHeatmap() {
   let html = '';
   const aW = 8*C+7*G, bW = 17*C+16*G, cW = 8*C+7*G;
 
-  // ─── OP구역 — OP 15번을 B구역 9번(중앙)에 정렬 ───
-  // opOffset = aW + (LBL+4) - 2*(C+G) = 63+22-16 = 69px
-  const opOffset = aW + LBL + 4 - 2*(C+G);
-  html += `<div style="margin-bottom:10px;margin-left:${opOffset}px;">`;
-  html += `<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px;text-align:center;">OP구역</div>`;
-  html += `<div style="display:flex;flex-direction:column;gap:${G}px;">`;
+  // ─── OP구역 — 섹션 전체 너비 안에서 중앙 정렬 ───
+  const totalW = RL + aW + (LBL+4) + bW + (LBL+4) + cW;
+  html += `<div style="width:${totalW}px;text-align:center;margin-bottom:10px;">`;
+  html += `<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px;">OP구역</div>`;
+  html += `<div style="display:inline-flex;flex-direction:column;gap:${G}px;">`;
   for (let row = 1; row <= 2; row++) {
     html += `<div style="display:flex;gap:0;align-items:center;">`;
     html += `<div style="width:${RL}px;font-size:7px;color:var(--text3);text-align:right;padding-right:2px;flex-shrink:0;">${row}열</div>`;
