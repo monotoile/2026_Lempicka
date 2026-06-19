@@ -2344,7 +2344,7 @@ function renderHeatmap() {
     return `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;margin-right:${G}px;" title="${zone}${row}열 ${n}번 ${cnt}회"></div>`;
   };
 
-  let html = '';
+  let html = '<div style="width:max-content;margin:0 auto;">';
   const aW = 8*C+7*G, bW = 17*C+16*G, cW = 8*C+7*G;
 
   // ─── OP구역 — 섹션 전체 너비 안에서 중앙 정렬 ───
@@ -2444,7 +2444,7 @@ function renderHeatmap() {
     html += '</div>';
   }
 
-  document.getElementById('heatmap').innerHTML = html;
+  document.getElementById('heatmap').innerHTML = html + '</div>';
 }
 
 // ============================================================
